@@ -44,46 +44,61 @@ if not check_password():
     st.stop()
 # --- 로그인 로직 끝 ---
 
-# 2. 디자인 스타일 적용
+# 2. 디자인 스타일 적용 (나눔스퀘어 네오 & 보라색 테마)
 st.markdown("""
     <style>
-    @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
+    /* 폰트 불러오기 (나눔스퀘어 네오) */
+    @import url('https://hangeul.pstatic.net/hangeul_static/css/nanum-square-neo.css');
     
     html, body, [class*="css"], .stMarkdown, p, div, span { 
-        font-family: 'KoPubDotum', 'KoPub 돋움체', sans-serif !important; 
+        font-family: 'NanumSquareNeo', sans-serif !important; 
         font-weight: 500; 
         color: #1d1d1f; 
     }
     
-    .title-signboard { background-color: #ffffff; padding: 30px 20px; border-radius: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.04); margin-bottom: 20px; margin-top: 20px; }
-    .title-signboard h1 { margin: 0; font-size: 26px; font-weight: 700 !important; color: #1d1d1f; letter-spacing: -1px; }
-    .version-tag { display: inline-block; margin-top: 12px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #0066cc; background-color: #e5f0ff; border-radius: 12px; }
-    
-    .section-title { font-size: 14px; font-weight: 700 !important; color: #86868b; margin-bottom: 8px; margin-top: 20px; padding-left: 4px; }
-    
-    div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px; }
-    div.stCode pre, div.stCode code { 
-        font-family: 'KoPubDotum', 'KoPub 돋움체', sans-serif !important; 
-        white-space: pre-wrap !important; 
-        word-break: break-all !important; 
-        color: #1d1d1f !important; 
-        font-size: 15px !important; 
-        line-height: 1.7 !important; 
-        background-color: transparent !important;
-    }
-    div.stCode pre { padding: 22px !important; padding-right: 60px !important; }
-    
-    div.stCode button, [data-testid="stCodeBlock"] button {
-        opacity: 1 !important;
-        visibility: visible !important;
-        display: flex !important;
+    /* 제목 전광판 스타일 */
+    .title-signboard { 
+        background-color: #ffffff; 
+        padding: 35px 20px; 
+        border-radius: 24px; 
+        text-align: center; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
+        margin-bottom: 25px; 
+        margin-top: 20px; 
+        border: 1px solid #f0f0f5;
     }
     
+    /* [수정된 부분] 제목 폰트: 나눔스퀘어 네오 Heavy + 보라색 */
+    .title-signboard h1 { 
+        margin: 0; 
+        font-family: 'NanumSquareNeo', sans-serif !important;
+        font-size: 32px; 
+        font-weight: 900 !important; /* Heavy 두께 */
+        color: #6366f1; /* 세련된 보라색 */
+        letter-spacing: -1.5px; 
+    }
+    
+    /* 버전 태그도 보라색 톤으로 통일 */
+    .version-tag { 
+        display: inline-block; 
+        margin-top: 12px; 
+        padding: 5px 14px; 
+        font-size: 12px; 
+        font-weight: 800; 
+        color: #6366f1; 
+        background-color: #f0f1ff; 
+        border-radius: 12px; 
+    }
+    
+    .section-title { font-size: 14px; font-weight: 800 !important; color: #86868b; margin-bottom: 8px; margin-top: 20px; padding-left: 4px; }
+    
+    /* 검색 결과 박스 디자인 */
+    div.stCode { background-color: #f8f8fa !important; border-radius: 16px !important; border: 1px solid #f0f0f5 !important; margin-bottom: 10px; }
     div[data-testid="stVerticalBlockBorderWrapper"] { 
         background-color: #ffffff; 
         padding: 10px 20px 30px 20px; 
         border-radius: 24px; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
+        box-shadow: 0 10px 40px rgba(99, 102, 241, 0.05); /* 박스에도 은은한 보라색 그림자 */
         border: 1px solid #f0f0f5 !important; 
         margin-bottom: 30px; 
     }
