@@ -5,8 +5,8 @@ import os
 # ==========================================
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
-MY_PASSWORD = "leylab2026"  # 👈 여기서 원하는 비밀번호로 수정하세요!
-MY_VERSION = "VERSION_260314" # 👈 오늘 날짜 버전명
+MY_PASSWORD = "leylab2026"  # 👈 비밀번호를 바꾸셨다면 여기서 다시 수정해줘!
+MY_VERSION = "VERSION_260314" 
 # ==========================================
 
 # 1. 페이지 세팅
@@ -14,14 +14,11 @@ st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="cent
 
 # --- 로그인 로직 시작 ---
 def check_password():
-    """비밀번호가 맞으면 True를 반환합니다."""
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
-
     if st.session_state["password_correct"]:
         return True
 
-    # 로그인 화면 디자인
     st.markdown("""
         <div style='text-align: center; padding: 50px 0;'>
             <h2 style='color: #1d1d1f;'>🔒 보안 인증</h2>
@@ -30,7 +27,6 @@ def check_password():
     """, unsafe_allow_html=True)
     
     password = st.text_input("비밀번호를 입력하세요", type="password")
-    
     if st.button("접속하기"):
         if password == MY_PASSWORD:
             st.session_state["password_correct"] = True
@@ -39,73 +35,62 @@ def check_password():
             st.error("❌ 비밀번호가 틀렸습니다.")
     return False
 
-# 로그인 통과 못 하면 여기서 멈춤
 if not check_password():
     st.stop()
 # --- 로그인 로직 끝 ---
 
-# 2. 디자인 스타일 적용 (나눔스퀘어 네오 & 보라색 테마)
+# 2. 디자인 스타일 적용 (제목 부분만 타겟팅 수정)
 st.markdown("""
     <style>
-    /* 폰트 불러오기 (나눔스퀘어 네오) */
     @import url('https://hangeul.pstatic.net/hangeul_static/css/nanum-square-neo.css');
+    @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
     
     html, body, [class*="css"], .stMarkdown, p, div, span { 
-        font-family: 'NanumSquareNeo', sans-serif !important; 
+        font-family: 'KoPubDotum', sans-serif !important; 
         font-weight: 500; 
         color: #1d1d1f; 
     }
     
-    /* 제목 전광판 스타일 */
-    .title-signboard { 
-        background-color: #ffffff; 
-        padding: 35px 20px; 
-        border-radius: 24px; 
-        text-align: center; 
-        box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
-        margin-bottom: 25px; 
-        margin-top: 20px; 
-        border: 1px solid #f0f0f5;
-    }
+    .title-signboard { background-color: #ffffff; padding: 30px 20px; border-radius: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.04); margin-bottom: 20px; margin-top: 20px; }
     
-    /* [수정된 부분] 제목 폰트: 나눔스퀘어 네오 Heavy + 보라색 */
+    /* [수정] 제목: 나눔스퀘어 네오 Heavy + 보라색 */
     .title-signboard h1 { 
         margin: 0; 
         font-family: 'NanumSquareNeo', sans-serif !important;
         font-size: 32px; 
-        font-weight: 900 !important; /* Heavy 두께 */
-        color: #6366f1; /* 세련된 보라색 */
+        font-weight: 900 !important; 
+        color: #6366f1 !important; 
         letter-spacing: -1.5px; 
     }
     
-    /* 버전 태그도 보라색 톤으로 통일 */
-    .version-tag { 
-        display: inline-block; 
-        margin-top: 12px; 
-        padding: 5px 14px; 
-        font-size: 12px; 
-        font-weight: 800; 
-        color: #6366f1; 
-        background-color: #f0f1ff; 
-        border-radius: 12px; 
+    .version-tag { display: inline-block; margin-top: 12px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #6366f1; background-color: #f0f1ff; border-radius: 12px; }
+    
+    .section-title { font-size: 14px; font-weight: 700 !important; color: #86868b; margin-bottom: 8px; margin-top: 20px; padding-left: 4px; }
+    
+    div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px; }
+    div.stCode pre, div.stCode code { 
+        font-family: 'KoPubDotum', sans-serif !important; 
+        white-space: pre-wrap !important; 
+        word-break: break-all !important; 
+        color: #1d1d1f !important; 
+        font-size: 15px !important; 
+        line-height: 1.7 !important; 
+        background-color: transparent !important;
     }
+    div.stCode pre { padding: 22px !important; padding-right: 60px !important; }
     
-    .section-title { font-size: 14px; font-weight: 800 !important; color: #86868b; margin-bottom: 8px; margin-top: 20px; padding-left: 4px; }
-    
-    /* 검색 결과 박스 디자인 */
-    div.stCode { background-color: #f8f8fa !important; border-radius: 16px !important; border: 1px solid #f0f0f5 !important; margin-bottom: 10px; }
     div[data-testid="stVerticalBlockBorderWrapper"] { 
         background-color: #ffffff; 
         padding: 10px 20px 30px 20px; 
         border-radius: 24px; 
-        box-shadow: 0 10px 40px rgba(99, 102, 241, 0.05); /* 박스에도 은은한 보라색 그림자 */
+        box-shadow: 0 10px 40px rgba(0,0,0,0.04); 
         border: 1px solid #f0f0f5 !important; 
         margin-bottom: 30px; 
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 상단 제목 (로그인 후 보임)
+# 상단 제목 (보라색 폰트 적용 구간)
 st.markdown(f"""
     <div class="title-signboard">
         <h1>이은영 헌법 통합검색 TOOL</h1>
@@ -113,7 +98,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수
+# 3. 데이터 파싱 함수 (로직 복구)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -128,11 +113,8 @@ def parse_block(text_block):
         if source_match:
             source = source_match.group(1).strip()
             clean_exp = full_answer_part[:source_match.start()].strip()
-            
-            # 불필요한 분류 꼬리표만 정밀 제거 (사례 보존)
             clean_exp = re.sub(r'(\n|^).*?(?:개념|의의|기출)\s*지문\s*$', '', clean_exp, flags=re.MULTILINE).strip()
             clean_exp = re.sub(r'(\n|^).*?(?:정리|기출)\s*$', '', clean_exp, flags=re.MULTILINE).strip()
-            
             ans_exp_full = clean_exp + " " + source
         else:
             source = "시행처 없음"
@@ -177,10 +159,8 @@ if os.path.exists(db_path):
                     with st.container(border=True):
                         st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
                         st.code(parsed_data['지문'], language="text")
-                        
                         st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
                         st.code(parsed_data['정답및해설'], language="text")
-                        
                         col1, col2 = st.columns(2)
                         with col1:
                             st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
