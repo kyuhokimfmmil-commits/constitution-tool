@@ -2,8 +2,49 @@ import streamlit as st
 import re
 import os
 
-# 1. 페이지 및 테마 세팅
+# ==========================================
+# [설정] 비밀번호 및 버전 정보
+# ==========================================
+MY_PASSWORD = "2026"  # 👈 여기서 원하는 비밀번호로 수정하세요!
+MY_VERSION = "VERSION_260314" # 👈 오늘 날짜 버전명
+# ==========================================
+
+# 1. 페이지 세팅
 st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
+
+# --- 로그인 로직 시작 ---
+def check_password():
+    """비밀번호가 맞으면 True를 반환합니다."""
+    if "password_correct" not in st.session_state:
+        st.session_state["password_correct"] = False
+
+    if st.session_state["password_correct"]:
+        return True
+
+    # 로그인 화면 디자인
+    st.markdown("""
+        <div style='text-align: center; padding: 50px 0;'>
+            <h2 style='color: #1d1d1f;'>🔒 보안 인증</h2>
+            <p style='color: #86868b;'>이 프로그램은 승인된 사용자만 이용할 수 있습니다.</p>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    password = st.text_input("비밀번호를 입력하세요", type="password")
+    
+    if st.button("접속하기"):
+        if password == MY_PASSWORD:
+            st.session_state["password_correct"] = True
+            st.rerun()
+        else:
+            st.error("❌ 비밀번호가 틀렸습니다.")
+    return False
+
+# 로그인 통과 못 하면 여기서 멈춤
+if not check_password():
+    st.stop()
+# --- 로그인 로직 끝 ---
+
+# 2. 디자인 스타일 적용
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -49,15 +90,15 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 상단 제목
-st.markdown("""
+# 상단 제목 (로그인 후 보임)
+st.markdown(f"""
     <div class="title-signboard">
         <h1>이은영 헌법 통합검색 TOOL</h1>
-        <div class="version-tag">VERSION_STABLE_V4</div>
+        <div class="version-tag">{MY_VERSION}</div>
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 텍스트 분리 및 정밀 클리닝
+# 3. 데이터 파싱 함수
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -65,19 +106,15 @@ def parse_block(text_block):
         
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         full_answer_part = parts[1].strip()
-        
-        # [1] 화살표 문구들(↑...↑, ↓...↓) 제거
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
         
-        # [2] 시행처 대괄호([]) 위치 찾기
         source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
         
         if source_match:
             source = source_match.group(1).strip()
             clean_exp = full_answer_part[:source_match.start()].strip()
             
-            # [핵심 수정] '사례'는 남기고, '개념 지문', '의의 지문', '기출 지문' 등만 타격
-            # 해설 끝부분에 있는 불필요한 분류 꼬리표만 제거합니다.
+            # 불필요한 분류 꼬리표만 정밀 제거 (사례 보존)
             clean_exp = re.sub(r'(\n|^).*?(?:개념|의의|기출)\s*지문\s*$', '', clean_exp, flags=re.MULTILINE).strip()
             clean_exp = re.sub(r'(\n|^).*?(?:정리|기출)\s*$', '', clean_exp, flags=re.MULTILINE).strip()
             
@@ -87,8 +124,6 @@ def parse_block(text_block):
             ans_exp_full = full_answer_part
             
         reference = "근거 확인 필요"
-        
-        # 판례/조문 번호 추출 로직 (안정화 버전 유지)
         ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', ans_exp_full)
         if '("' in ref_text_temp: 
             reference = ref_text_temp.split('("')[0].strip()
