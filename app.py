@@ -3,16 +3,16 @@ import re
 import os
 
 # ==========================================
-# [설정] 비밀번호 및 버전 정보 (로직 유지)
+# [설정] 비밀번호 및 버전 정보
 # ==========================================
-MY_PASSWORD = "leylab2026"  
+MY_PASSWORD = "2026"  
 MY_VERSION = "VERSION_260314" 
 # ==========================================
 
 # 1. 페이지 세팅
 st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
 
-# --- 로그인 로직 (절대 불변) ---
+# --- 로그인 로직 (불변) ---
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -31,122 +31,114 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (제목 부분 대폭 업그레이드)
+# 2. 디자인 스타일 적용 (줄바꿈 복구 및 배경 패턴 강제 적용)
 st.markdown("""
     <style>
-    /* 나눔스퀘어 네오 폰트 강제 로드 */
-    @font-face {
-        font-family: 'NanumSquareNeoHeavy';
-        src: url('https://hangeul.pstatic.net/hangeul_static/webfont/nanum-square-neo/NanumSquareNeo-eHv.eot');
-        src: url('https://hangeul.pstatic.net/hangeul_static/webfont/nanum-square-neo/NanumSquareNeo-eHv.eot?#iefix') format('embedded-opentype'),
-             url('https://hangeul.pstatic.net/hangeul_static/webfont/nanum-square-neo/NanumSquareNeo-eHv.woff2') format('woff2'),
-             url('https://hangeul.pstatic.net/hangeul_static/webfont/nanum-square-neo/NanumSquareNeo-eHv.woff') format('woff'),
-             url('https://hangeul.pstatic.net/hangeul_static/webfont/nanum-square-neo/NanumSquareNeo-eHv.ttf') format('truetype');
-    }
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
+    @import url('https://hangeul.pstatic.net/hangeul_static/css/nanum-square-neo.css');
     
     html, body, [class*="css"], .stMarkdown, p, div, span { 
         font-family: 'KoPubDotum', sans-serif !important; 
     }
     
-    /* [업그레이드] 제목 전광판: 블랙 법전 & 애플 감성 */
+    /* [디자인] 제목 전광판: 화이트 배경 + 격자(점) 패턴 */
     .title-signboard { 
-        background-color: #1d1d1f; /* 애플 블랙 */
-        background-image: linear-gradient(145deg, #1d1d1f 0%, #2c2c2e 100%); /* 미세한 그라데이션 */
-        padding: 40px 20px; 
-        border-radius: 24px; 
-        text-align: center; 
-        box-shadow: 0 20px 50px rgba(0,0,0,0.15); /* 깊은 그림자 */
-        margin-bottom: 25px; 
-        margin-top: 20px;
-        border: 1px solid #3a3a3c; /* 미세한 테두리 */
-        position: relative;
-        overflow: hidden;
+        background-color: #ffffff !important;
+        background-image: radial-gradient(#d1d1d6 0.8px, transparent 0.8px) !important;
+        background-size: 12px 12px !important;
+        padding: 45px 20px !important; 
+        border-radius: 24px !important; 
+        text-align: center !important; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.05) !important; 
+        margin-bottom: 30px !important; 
+        border: 1px solid #f0f0f5 !important;
     }
     
-    /* 법전 문양 백그라운드 효과 (패턴) */
-    .title-signboard::before {
-        content: '';
-        position: absolute;
-        top: -50%; left: -50%;
-        width: 200%; height: 200%;
-        background-image: url('https://www.transparenttextures.com/patterns/dark-dot-2.png'); /* 미세한 도트 패턴 */
-        opacity: 0.1;
-        transform: rotate(10deg);
-    }
-    
-    /* 제목 폰트: Heavy + 보라색 고정 (아이콘 포함) */
+    /* 제목: 검정색 + 양쪽 저울 아이콘 */
     .title-signboard h1 { 
         margin: 0 !important; 
-        font-family: 'NanumSquareNeoHeavy', sans-serif !important;
+        font-family: 'NanumSquareNeo', sans-serif !important;
         font-size: 32px !important; 
         font-weight: 900 !important; 
-        color: #6366f1 !important; /* 선명한 인디고 보라색 */
-        letter-spacing: -1.0px !important; 
-        line-height: 1.3 !important;
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 12px; /* 아이콘과 간격 */
+        color: #1d1d1f !important; 
+        letter-spacing: -1.0px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 15px !important;
     }
     
-    /* 제목 앞뒤 아이콘 스타일 */
-    .title-icon {
-        font-size: 36px;
-        opacity: 0.8;
-    }
-    
-    /* 버전 태그: 블랙 배경에 맞춘 스타일 */
     .version-tag { 
-        display: inline-block; 
-        margin-top: 16px; 
-        padding: 6px 18px; 
-        font-size: 13px; 
-        font-weight: 800; 
-        color: #ffffff; 
-        background-color: rgba(99, 102, 241, 0.4); /* 연한 보라색 반투명 */
-        border-radius: 20px; 
-        position: relative;
+        display: inline-block !important; 
+        margin-top: 18px !important; 
+        padding: 6px 18px !important; 
+        font-size: 13px !important; 
+        font-weight: 800 !important; 
+        color: #6366f1 !important; 
+        background-color: #f0f1ff !important; 
+        border-radius: 20px !important; 
     }
     
-    .section-title { font-size: 14px; font-weight: 700; color: #86868b; margin-top: 20px; }
-    div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; }
-    div[data-testid="stVerticalBlockBorderWrapper"] { background-color: #ffffff; padding: 10px 20px 30px 20px; border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.04); border: 1px solid #f0f0f5 !important; }
+    /* [핵심] 줄바꿈 로직 유지 (이 부분이 빠지면 안 됨) */
+    .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
+    
+    div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
+    div.stCode pre, div.stCode code { 
+        font-family: 'KoPubDotum', sans-serif !important; 
+        white-space: pre-wrap !important; /* 줄바꿈 강제 */
+        word-break: break-all !important; 
+        color: #1d1d1f !important; 
+        font-size: 15px !important; 
+        line-height: 1.7 !important; 
+        background-color: transparent !important;
+    }
+    div.stCode pre { padding: 22px !important; }
+    
+    div[data-testid="stVerticalBlockBorderWrapper"] { 
+        background-color: #ffffff !important; 
+        padding: 10px 20px 30px 20px !important; 
+        border-radius: 24px !important; 
+        box-shadow: 0 10px 40px rgba(0,0,0,0.04) !important; 
+        border: 1px solid #f0f0f5 !important; 
+        margin-bottom: 30px !important; 
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# 상단 제목 출력 (아이콘 추가)
+# 상단 제목 출력
 st.markdown(f"""
     <div class="title-signboard">
-        <h1>
-            <span class="title-icon">⚖️</span> 이은영 헌법 통합검색 TOOL
-            <span class="title-icon">📜</span> </h1>
+        <h1>⚖️ 이은영 헌법 통합검색 TOOL ⚖️</h1>
         <div class="version-tag">{MY_VERSION}</div>
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 및 검색 로직 (절대 불변)
+# 3. 데이터 파싱 함수 (완벽했던 그 로직 그대로)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
         if len(parts) < 2: return None
+        
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         full_answer_part = parts[1].strip()
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
+        
         source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
         
         if source_match:
             source = source_match.group(1).strip()
             clean_exp = full_answer_part[:source_match.start()].strip()
             clean_exp = re.sub(r'(\n|^).*?(?:개념|의의|기출)\s*지문\s*$', '', clean_exp, flags=re.MULTILINE).strip()
+            clean_exp = re.sub(r'(\n|^).*?(?:정리|기출)\s*$', '', clean_exp, flags=re.MULTILINE).strip()
             ans_exp_full = clean_exp + " " + source
         else:
-            source = "시행처 없음"; ans_exp_full = full_answer_part
+            source = "시행처 없음"
+            ans_exp_full = full_answer_part
             
         reference = "근거 확인 필요"
         ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', ans_exp_full)
-        if '("' in ref_text_temp: reference = ref_text_temp.split('("')[0].strip()
+        if '("' in ref_text_temp: 
+            reference = ref_text_temp.split('("')[0].strip()
         elif '「' in ref_text_temp:
             match = re.search(r'(「.*?」\s*제\d+조(?:\([^\)]+\))?)', ref_text_temp)
             if match: reference = match.group(1).strip()
@@ -161,6 +153,7 @@ def parse_block(text_block):
         return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source}
     except Exception: return None
 
+# 4. 검색창 및 결과 출력
 search_query = st.text_input("🔍 검색어를 입력하세요")
 db_path = "database.txt"
 
@@ -168,8 +161,10 @@ if os.path.exists(db_path):
     if search_query:
         with open(db_path, 'r', encoding='utf-8') as f:
             content = f.read()
+            
         blocks = re.split(r'(?m)^0\.\s', content)
         results_found = 0
+        
         for block in blocks:
             if not block.strip(): continue
             if search_query in block:
@@ -188,6 +183,9 @@ if os.path.exists(db_path):
                         with col2:
                             st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                             st.code(parsed_data['판례번호'], language="text")
+                            
+        st.divider()
         if results_found == 0: st.warning("결과가 없습니다.")
+        else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else:
     st.error("database.txt 파일을 찾을 수 없습니다.")
