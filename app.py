@@ -3,7 +3,7 @@ import re
 import os
 
 # ==========================================
-# [설정] 비밀번호 및 버전 정보
+# [설정] 비밀번호 및 버전 정보 (로직 유지)
 # ==========================================
 MY_PASSWORD = "leylab2026"  
 MY_VERSION = "VERSION_260314" 
@@ -12,7 +12,7 @@ MY_VERSION = "VERSION_260314"
 # 1. 페이지 세팅
 st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
 
-# --- 로그인 로직 ---
+# --- 로그인 로직 (절대 불변) ---
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (폰트 로딩 방식 개선 및 제목 강제 적용)
+# 2. 디자인 스타일 적용 (제목 부분 대폭 업그레이드)
 st.markdown("""
     <style>
     /* 나눔스퀘어 네오 폰트 강제 로드 */
@@ -49,28 +49,65 @@ st.markdown("""
         font-family: 'KoPubDotum', sans-serif !important; 
     }
     
-    .title-signboard { background-color: #ffffff; padding: 35px 20px; border-radius: 24px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.04); margin-bottom: 20px; }
+    /* [업그레이드] 제목 전광판: 블랙 법전 & 애플 감성 */
+    .title-signboard { 
+        background-color: #1d1d1f; /* 애플 블랙 */
+        background-image: linear-gradient(145deg, #1d1d1f 0%, #2c2c2e 100%); /* 미세한 그라데이션 */
+        padding: 40px 20px; 
+        border-radius: 24px; 
+        text-align: center; 
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15); /* 깊은 그림자 */
+        margin-bottom: 25px; 
+        margin-top: 20px;
+        border: 1px solid #3a3a3c; /* 미세한 테두리 */
+        position: relative;
+        overflow: hidden;
+    }
     
-    /* [핵심] 제목 부분: 폰트와 보라색 강제 고정 */
+    /* 법전 문양 백그라운드 효과 (패턴) */
+    .title-signboard::before {
+        content: '';
+        position: absolute;
+        top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background-image: url('https://www.transparenttextures.com/patterns/dark-dot-2.png'); /* 미세한 도트 패턴 */
+        opacity: 0.1;
+        transform: rotate(10deg);
+    }
+    
+    /* 제목 폰트: Heavy + 보라색 고정 (아이콘 포함) */
     .title-signboard h1 { 
         margin: 0 !important; 
         font-family: 'NanumSquareNeoHeavy', sans-serif !important;
-        font-size: 34px !important; 
+        font-size: 32px !important; 
         font-weight: 900 !important; 
-        color: #6366f1 !important; /* 보라색 고정 */
-        letter-spacing: -1.5px !important; 
-        line-height: 1.2 !important;
+        color: #6366f1 !important; /* 선명한 인디고 보라색 */
+        letter-spacing: -1.0px !important; 
+        line-height: 1.3 !important;
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px; /* 아이콘과 간격 */
     }
     
+    /* 제목 앞뒤 아이콘 스타일 */
+    .title-icon {
+        font-size: 36px;
+        opacity: 0.8;
+    }
+    
+    /* 버전 태그: 블랙 배경에 맞춘 스타일 */
     .version-tag { 
         display: inline-block; 
-        margin-top: 14px; 
-        padding: 5px 16px; 
+        margin-top: 16px; 
+        padding: 6px 18px; 
         font-size: 13px; 
         font-weight: 800; 
-        color: #6366f1; 
-        background-color: #f0f1ff; 
-        border-radius: 12px; 
+        color: #ffffff; 
+        background-color: rgba(99, 102, 241, 0.4); /* 연한 보라색 반투명 */
+        border-radius: 20px; 
+        position: relative;
     }
     
     .section-title { font-size: 14px; font-weight: 700; color: #86868b; margin-top: 20px; }
@@ -79,15 +116,17 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 상단 제목 출력
+# 상단 제목 출력 (아이콘 추가)
 st.markdown(f"""
     <div class="title-signboard">
-        <h1>이은영 헌법 통합검색 TOOL</h1>
+        <h1>
+            <span class="title-icon">⚖️</span> 이은영 헌법 통합검색 TOOL
+            <span class="title-icon">📜</span> </h1>
         <div class="version-tag">{MY_VERSION}</div>
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 및 검색 로직 (기존 완벽 버전 유지)
+# 3. 데이터 파싱 및 검색 로직 (절대 불변)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
