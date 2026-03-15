@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (줄바꿈 복구 및 배경 패턴 강제 적용)
+# 2. 디자인 스타일 적용 (배경 패턴 및 줄바꿈 유지)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -41,7 +41,6 @@ st.markdown("""
         font-family: 'KoPubDotum', sans-serif !important; 
     }
     
-    /* [디자인] 제목 전광판: 화이트 배경 + 격자(점) 패턴 */
     .title-signboard { 
         background-color: #ffffff !important;
         background-image: radial-gradient(#d1d1d6 0.8px, transparent 0.8px) !important;
@@ -54,7 +53,6 @@ st.markdown("""
         border: 1px solid #f0f0f5 !important;
     }
     
-    /* 제목: 검정색 + 양쪽 저울 아이콘 */
     .title-signboard h1 { 
         margin: 0 !important; 
         font-family: 'NanumSquareNeo', sans-serif !important;
@@ -79,13 +77,12 @@ st.markdown("""
         border-radius: 20px !important; 
     }
     
-    /* [핵심] 줄바꿈 로직 유지 (이 부분이 빠지면 안 됨) */
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
-        white-space: pre-wrap !important; /* 줄바꿈 강제 */
+        white-space: pre-wrap !important; 
         word-break: break-all !important; 
         color: #1d1d1f !important; 
         font-size: 15px !important; 
@@ -105,7 +102,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 상단 제목 출력
 st.markdown(f"""
     <div class="title-signboard">
         <h1>⚖️ 이은영 헌법 통합검색 TOOL ⚖️</h1>
@@ -113,7 +109,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (완벽했던 그 로직 그대로)
+# 3. 데이터 파싱 함수 (요청하신 부분만 정밀 수정)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -137,17 +133,22 @@ def parse_block(text_block):
             
         reference = "근거 확인 필요"
         ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', ans_exp_full)
+        
+        # [수정 포인트] '1987년 제9차' 같은 정보를 포함하도록 패턴 확장
         if '("' in ref_text_temp: 
             reference = ref_text_temp.split('("')[0].strip()
         elif '「' in ref_text_temp:
-            match = re.search(r'(「.*?」\s*제\d+조(?:\([^\)]+\))?)', ref_text_temp)
+            # 「 」 앞의 연도/차수 정보를 포함하여 추출
+            match = re.search(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?「.*?」\s*제\d+조(?:\([^\)]+\))?)', ref_text_temp)
             if match: reference = match.group(1).strip()
                 
         if reference == "근거 확인 필요" or not reference:
+            # 판례번호 및 조문 패턴 최적화
             case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', ans_exp_full)
             if case_matches: reference = case_matches[-1].strip()
             else:
-                law_matches = re.findall(r'([가-힣]+법\s*제\d+조(?:의\d+)?|헌법\s*제\d+조(?:의\d+)?)', ans_exp_full)
+                # 조문 앞에 연도가 붙은 경우도 캐치
+                law_matches = re.findall(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?[가-힣]+법\s*제\d+조(?:의\d+)?|(?:\d{4}년\s*(?:제\d+차\s*)?)?헌법\s*제\d+조(?:의\d+)?)', ans_exp_full)
                 if law_matches: reference = law_matches[-1].strip()
 
         return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source}
@@ -161,10 +162,8 @@ if os.path.exists(db_path):
     if search_query:
         with open(db_path, 'r', encoding='utf-8') as f:
             content = f.read()
-            
         blocks = re.split(r'(?m)^0\.\s', content)
         results_found = 0
-        
         for block in blocks:
             if not block.strip(): continue
             if search_query in block:
@@ -183,8 +182,6 @@ if os.path.exists(db_path):
                         with col2:
                             st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                             st.code(parsed_data['판례번호'], language="text")
-                            
-        st.divider()
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else:
