@@ -6,7 +6,7 @@ import os
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
 MY_PASSWORD = "leylab2026"  
-MY_VERSION = "VERSION_260422_STABLE" 
+MY_VERSION = "VERSION_260422" 
 # ==========================================
 
 # 1. 페이지 세팅
@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 스타일 유지 + 하이라이트 레이어 추가)
+# 2. 디자인 스타일 적용 (배경 패턴 및 줄바꿈 유지)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -60,7 +60,10 @@ st.markdown("""
         font-weight: 900 !important; 
         color: #1d1d1f !important; 
         letter-spacing: -1.0px !important;
-        display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 15px !important;
     }
     
     .version-tag { 
@@ -76,29 +79,26 @@ st.markdown("""
     
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
-    /* [불변] 기본 코드 박스 스타일 및 줄바꿈 유지 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
-    div.stCode pre { 
-        padding: 22px !important; 
+    div.stCode pre, div.stCode code { 
+        font-family: 'KoPubDotum', sans-serif !important; 
         white-space: pre-wrap !important; 
         word-break: break-all !important; 
-        background-color: #f5f5f7 !important;
-    }
-    div.stCode code { 
-        font-family: 'KoPubDotum', sans-serif !important; 
         color: #1d1d1f !important; 
         font-size: 15px !important; 
         line-height: 1.7 !important; 
+        background-color: transparent !important;
     }
+    div.stCode pre { padding: 22px !important; }
 
-    /* [추가] 정답 X 지문용 하이라이트 - 님이 쓰시는 원본 stCode 레이아웃을 100% 상속 */
+    /* [오직 이 부분만 추가] 정답 (☓)일 때 지문 박스 주황색 하이라이트 강제 적용 */
     .wrong-answer div[data-testid="stCodeBlock"] pre {
-        background-color: #FFD580 !important; /* 주황색 하이라이트 */
+        background-color: #FFD580 !important; /* 가독성 좋은 연주황 */
         border: 2px solid #FFB347 !important;
     }
     .wrong-answer div[data-testid="stCodeBlock"] code {
-        font-weight: 800 !important;
-        color: #000000 !important;
+        color: #000000 !important; /* 글자색 검정 고정 */
+        font-weight: 800 !important; /* 글자 굵게 강조 */
     }
     
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -119,7 +119,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (오답 판별 기능 추가)
+# 3. 데이터 파싱 함수 (오답 판별 로직만 추가)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -128,9 +128,9 @@ def parse_block(text_block):
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         full_answer_part = parts[1].strip()
         
-        # [정밀 판별] 님이 쓰신 특수문자 (☓)를 포함한 오답 체크
+        # [정밀 판별] 님이 강조하신 (☓) 기호를 최우선으로 찾습니다.
         is_wrong = False
-        if any(mark in full_answer_part[:15] for mark in ['(☓)', '(X)', '(x)', '(×)']):
+        if '(☓)' in full_answer_part[:15] or '(X)' in full_answer_part[:15] or '(x)' in full_answer_part[:15]:
             is_wrong = True
 
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
@@ -175,30 +175,32 @@ if os.path.exists(db_path):
         blocks = re.split(r'(?m)^0\.\s', content)
         results_found = 0
         for block in blocks:
-            if not block.strip() or search_query not in block: continue
-            parsed_data = parse_block("0. " + block)
-            if parsed_data:
-                results_found += 1
-                with st.container(border=True):
-                    st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
-                    
-                    # [핵심] 오답이면 전용 클래스로 감싸서 st.code 출력 (복사 버튼 유지 및 줄바꿈 보장)
-                    if parsed_data['오답']:
-                        st.markdown('<div class="wrong-answer">', unsafe_allow_html=True)
-                        st.code(parsed_data['지문'], language="text")
-                        st.markdown('</div>', unsafe_allow_html=True)
-                    else:
-                        st.code(parsed_data['지문'], language="text")
+            if not block.strip(): continue
+            if search_query in block:
+                parsed_data = parse_block("0. " + block)
+                if parsed_data:
+                    results_found += 1
+                    with st.container(border=True):
+                        st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
                         
-                    st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
-                    st.code(parsed_data['정답및해설'], language="text")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
-                        st.code(parsed_data['시행처'], language="text")
-                    with col2:
-                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
-                        st.code(parsed_data['판례번호'], language="text")
+                        # [핵심] 오답일 때만 전용 클래스(wrong-answer)로 감싸서 주황색 하이라이트 적용
+                        # st.code를 유지하므로 복사 버튼과 줄바꿈 기능이 원본 그대로 작동합니다.
+                        if parsed_data['오답']:
+                            st.markdown('<div class="wrong-answer">', unsafe_allow_html=True)
+                            st.code(parsed_data['지문'], language="text")
+                            st.markdown('</div>', unsafe_allow_html=True)
+                        else:
+                            st.code(parsed_data['지문'], language="text")
+                            
+                        st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
+                        st.code(parsed_data['정답및해설'], language="text")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
+                            st.code(parsed_data['시행처'], language="text")
+                        with col2:
+                            st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
+                            st.code(parsed_data['판례번호'], language="text")
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else:
