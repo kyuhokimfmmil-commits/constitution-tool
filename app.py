@@ -91,14 +91,14 @@ st.markdown("""
     }
     div.stCode pre { padding: 22px !important; }
     
-    /* [추가] 정답 X 지문용 형광펜 효과 (복사 버튼 유지) */
+    /* [핵심] 오답 지문 하이라이트 전용 스타일 (복사 버튼 유지) */
     .highlight-x-container div.stCode pre {
-        background-color: #FFD580 !important; /* 연한 주황색 배경 */
+        background-color: #FFD580 !important; 
         border: 2px solid #FFB347 !important;
     }
     .highlight-x-container div.stCode code {
-        color: #000000 !important; /* 글자색 검정 */
-        font-weight: 700 !important; /* 글자 굵게 */
+        color: #000000 !important; 
+        font-weight: 800 !important; 
     }
     
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -119,7 +119,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (오답 판별 로직 추가)
+# 3. 데이터 파싱 함수 (오답 판별 보강)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -128,10 +128,12 @@ def parse_block(text_block):
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         full_answer_part = parts[1].strip()
         
-        # 오답 여부 판별 (X 또는 ☓ 기호 확인)
-        is_wrong_statement = False
-        if re.search(r'\([☓X]\)', full_answer_part):
-            is_wrong_statement = True
+        # [수정] 오답 판별 범위 확장: (X), (x), (☓), (×) 모두 감지
+        is_wrong = False
+        # 정답 기호만 있는 앞부분에서 X 관련 기호를 찾음
+        answer_symbol_area = full_answer_part.split(')')[0] + ')'
+        if any(x in answer_symbol_area for x in ['X', 'x', '☓', '×']):
+            is_wrong = True
 
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
         source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
@@ -162,7 +164,7 @@ def parse_block(text_block):
                 law_matches = re.findall(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?[가-힣]+법\s*제\d+조(?:의\d+)?|(?:\d{4}년\s*(?:제\d+차\s*)?)?헌법\s*제\d+조(?:의\d+)?)', ans_exp_full)
                 if law_matches: reference = law_matches[-1].strip()
 
-        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답": is_wrong_statement}
+        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답": is_wrong}
     except Exception: return None
 
 # 4. 검색창 및 결과 출력
@@ -184,7 +186,7 @@ if os.path.exists(db_path):
                     with st.container(border=True):
                         st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
                         
-                        # [핵심] 오답일 때만 전용 컨테이너로 감싸 주황색 형광펜 적용 (st.code 유지로 복사버튼 살림)
+                        # 오답일 때만 주황색 하이라이트 컨테이너 작동
                         if parsed_data['오답']:
                             st.markdown('<div class="highlight-x-container">', unsafe_allow_html=True)
                             st.code(parsed_data['지문'], language="text")
