@@ -6,13 +6,13 @@ import os
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
 MY_PASSWORD = "leylab2026"  
-MY_VERSION = "VERSION_260422_HIGHLIGHT" 
+MY_VERSION = "VERSION_260422" 
 # ==========================================
 
 # 1. 페이지 세팅
 st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
 
-# --- 로그인 로직 (불변) ---
+# --- 로그인 로직 ---
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (배경 패턴 및 줄바꿈 유지)
+# 2. 디자인 스타일 적용
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -79,8 +79,8 @@ st.markdown("""
     
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
-    /* 기존 지문 박스 스타일 유지 */
-    div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
+    /* 기본 코드 박스 공통 스타일 */
+    div.stCode { border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
         white-space: pre-wrap !important; 
@@ -88,23 +88,20 @@ st.markdown("""
         color: #1d1d1f !important; 
         font-size: 15px !important; 
         line-height: 1.7 !important; 
-        background-color: transparent !important;
     }
     div.stCode pre { padding: 22px !important; }
-    
-    /* [추가] 정답이 X인 지문을 위한 형광펜 스타일 */
-    .highlight-x {
+
+    /* 일반 박스 배경색 */
+    div[data-testid="stCodeBlock"] { background-color: #f5f5f7 !important; }
+
+    /* [수정] 오답(X) 지문 박스 - 강제로 주황색 배경 적용 및 복사 버튼 유지 */
+    div.highlight-x-box div[data-testid="stCodeBlock"] {
         background-color: #FFD580 !important;
-        color: #000000 !important;
-        padding: 20px !important;
-        border-radius: 16px !important;
-        font-size: 15px !important;
-        line-height: 1.7 !important;
-        font-weight: 600 !important;
         border: 2px solid #FFB347 !important;
-        margin-bottom: 10px !important;
-        white-space: pre-wrap !important;
-        word-break: break-all !important;
+    }
+    div.highlight-x-box code {
+        font-weight: 700 !important;
+        color: #000000 !important;
     }
 
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -125,7 +122,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (불변)
+# 3. 데이터 파싱 함수
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -134,10 +131,10 @@ def parse_block(text_block):
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         full_answer_part = parts[1].strip()
         
-        # 정답 판별 로직 추가 (X인지 확인용)
-        is_wrong_statement = False
+        # 오답 여부 판별
+        is_wrong = False
         if re.search(r'\([☓X]\)', full_answer_part):
-            is_wrong_statement = True
+            is_wrong = True
 
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
         source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
@@ -168,7 +165,7 @@ def parse_block(text_block):
                 law_matches = re.findall(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?[가-힣]+법\s*제\d+조(?:의\d+)?|(?:\d{4}년\s*(?:제\d+차\s*)?)?헌법\s*제\d+조(?:의\d+)?)', ans_exp_full)
                 if law_matches: reference = law_matches[-1].strip()
 
-        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답여부": is_wrong_statement}
+        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답": is_wrong}
     except Exception: return None
 
 # 4. 검색창 및 결과 출력
@@ -190,14 +187,17 @@ if os.path.exists(db_path):
                     with st.container(border=True):
                         st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
                         
-                        # [핵심 변경점] 정답이 X인 경우 주황색 형광펜 적용
-                        if parsed_data['오답여부']:
-                            st.markdown(f"<div class='highlight-x'>{parsed_data['지문']}</div>", unsafe_allow_html=True)
+                        # [해결] 복사 버튼 유지를 위해 st.code를 사용하되 클래스로 색상 제어
+                        if parsed_data['오답']:
+                            st.markdown('<div class="highlight-x-box">', unsafe_allow_html=True)
+                            st.code(parsed_data['지문'], language="text")
+                            st.markdown('</div>', unsafe_allow_html=True)
                         else:
                             st.code(parsed_data['지문'], language="text")
                             
                         st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
                         st.code(parsed_data['정답및해설'], language="text")
+                        
                         col1, col2 = st.columns(2)
                         with col1:
                             st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
@@ -205,6 +205,7 @@ if os.path.exists(db_path):
                         with col2:
                             st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                             st.code(parsed_data['판례번호'], language="text")
+        
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else:
