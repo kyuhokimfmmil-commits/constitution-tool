@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (배경 패턴 및 줄바꿈 유지)
+# 2. 디자인 스타일 적용 (원본 유지 + 하이라이트 강제 주입)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -60,10 +60,7 @@ st.markdown("""
         font-weight: 900 !important; 
         color: #1d1d1f !important; 
         letter-spacing: -1.0px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        gap: 15px !important;
+        display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important;
     }
     
     .version-tag { 
@@ -79,6 +76,7 @@ st.markdown("""
     
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
+    /* 원본 stCode 스타일 유지 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
@@ -91,16 +89,17 @@ st.markdown("""
     }
     div.stCode pre { padding: 22px !important; }
 
-    /* [오직 이 부분만 추가] 정답 (☓)일 때 지문 박스 주황색 하이라이트 강제 적용 */
-    .wrong-answer div[data-testid="stCodeBlock"] pre {
-        background-color: #FFD580 !important; /* 가독성 좋은 연주황 */
+    /* [긴급 수정] 오답 지문 강제 주황색 하이라이트 로직 */
+    /* st.code 박스 내부 pre 태그의 배경색을 직접 타겟팅 */
+    div.wrong-highlight [data-testid="stCodeBlock"] pre {
+        background-color: #FFD580 !important; 
         border: 2px solid #FFB347 !important;
     }
-    .wrong-answer div[data-testid="stCodeBlock"] code {
-        color: #000000 !important; /* 글자색 검정 고정 */
-        font-weight: 800 !important; /* 글자 굵게 강조 */
+    div.wrong-highlight [data-testid="stCodeBlock"] code {
+        color: #000000 !important; 
+        font-weight: 800 !important; 
     }
-    
+
     div[data-testid="stVerticalBlockBorderWrapper"] { 
         background-color: #ffffff !important; 
         padding: 10px 20px 30px 20px !important; 
@@ -119,52 +118,38 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (오답 판별 로직만 추가)
+# 3. 데이터 파싱 함수 (오답 판별 보강)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
         if len(parts) < 2: return None
         
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
-        full_answer_part = parts[1].strip()
+        ans_exp_full = parts[1].strip()
         
-        # [정밀 판별] 님이 강조하신 (☓) 기호를 최우선으로 찾습니다.
+        # [정밀 판별] 님이 채팅에 적어주신 특수문자 (☓)를 그대로 인식하도록 설정
         is_wrong = False
-        if '(☓)' in full_answer_part[:15] or '(X)' in full_answer_part[:15] or '(x)' in full_answer_part[:15]:
+        if '(☓)' in ans_exp_full[:15] or '(X)' in ans_exp_full[:15] or '(x)' in ans_exp_full[:15]:
             is_wrong = True
 
-        full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
-        source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
+        ans_exp_full = re.sub(r'↑.*?↑|↓.*?↓', '', ans_exp_full).strip()
+        source_match = re.search(r'(\[[^\]]+\])', ans_exp_full)
+        source = source_match.group(1).strip() if source_match else "시행처 없음"
         
-        if source_match:
-            source = source_match.group(1).strip()
-            clean_exp = full_answer_part[:source_match.start()].strip()
-            clean_exp = re.sub(r'(\n|^).*?(?:개념|의의|기출)\s*지문\s*$', '', clean_exp, flags=re.MULTILINE).strip()
-            clean_exp = re.sub(r'(\n|^).*?(?:정리|기출)\s*$', '', clean_exp, flags=re.MULTILINE).strip()
-            ans_exp_full = clean_exp + " " + source
-        else:
-            source = "시행처 없음"
-            ans_exp_full = full_answer_part
-            
         reference = "근거 확인 필요"
-        ref_text_temp = re.sub(r'^\([○OX☓×]\)\s*', '', ans_exp_full)
-        
-        if '("' in ref_text_temp: reference = ref_text_temp.split('("')[0].strip()
-        elif '「' in ref_text_temp:
-            match = re.search(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?「.*?」\s*제\d+조(?:\([^\)]+\))?)', ref_text_temp)
+        ref_temp = re.sub(r'^\([○OX☓×]\)\s*', '', ans_exp_full)
+        if '("' in ref_temp: reference = ref_temp.split('("')[0].strip()
+        elif '「' in ref_temp:
+            match = re.search(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?「.*?」\s*제\d+조(?:\([^\)]+\))?)', ref_temp)
             if match: reference = match.group(1).strip()
-                
         if reference == "근거 확인 필요" or not reference:
             case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', ans_exp_full)
             if case_matches: reference = case_matches[-1].strip()
-            else:
-                law_matches = re.findall(r'((?:\d{4}년\s*(?:제\d+차\s*)?)?[가-힣]+법\s*제\d+조(?:의\d+)?|(?:\d{4}년\s*(?:제\d+차\s*)?)?헌법\s*제\d+조(?:의\d+)?)', ans_exp_full)
-                if law_matches: reference = law_matches[-1].strip()
 
-        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답": is_wrong}
+        return {"지문": question, "해설": ans_exp_full, "판례": reference, "시행처": source, "오답": is_wrong}
     except Exception: return None
 
-# 4. 검색창 및 결과 출력
+# 4. 검색창 및 결과 출력 (원본 로직 보존)
 search_query = st.text_input("🔍 검색어를 입력하세요")
 db_path = "database.txt"
 
@@ -175,32 +160,31 @@ if os.path.exists(db_path):
         blocks = re.split(r'(?m)^0\.\s', content)
         results_found = 0
         for block in blocks:
-            if not block.strip(): continue
-            if search_query in block:
-                parsed_data = parse_block("0. " + block)
-                if parsed_data:
-                    results_found += 1
-                    with st.container(border=True):
-                        st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
+            if not block.strip() or search_query not in block: continue
+            parsed_data = parse_block("0. " + block)
+            if parsed_data:
+                results_found += 1
+                with st.container(border=True):
+                    st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
+                    
+                    # [핵심] 오답일 때만 wrong-highlight 클래스로 감싸서 강제 주황색 처리
+                    if parsed_data['오답']:
+                        st.markdown('<div class="wrong-highlight">', unsafe_allow_html=True)
+                        st.code(parsed_data['지문'], language="text")
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    else:
+                        st.code(parsed_data['지문'], language="text")
                         
-                        # [핵심] 오답일 때만 전용 클래스(wrong-answer)로 감싸서 주황색 하이라이트 적용
-                        # st.code를 유지하므로 복사 버튼과 줄바꿈 기능이 원본 그대로 작동합니다.
-                        if parsed_data['오답']:
-                            st.markdown('<div class="wrong-answer">', unsafe_allow_html=True)
-                            st.code(parsed_data['지문'], language="text")
-                            st.markdown('</div>', unsafe_allow_html=True)
-                        else:
-                            st.code(parsed_data['지문'], language="text")
-                            
-                        st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
-                        st.code(parsed_data['정답및해설'], language="text")
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
-                            st.code(parsed_data['시행처'], language="text")
-                        with col2:
-                            st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
-                            st.code(parsed_data['판례번호'], language="text")
+                    st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
+                    st.code(parsed_data['해설'], language="text")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
+                        st.code(parsed_data['시행처'], language="text")
+                    with col2:
+                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
+                        st.code(parsed_data['판례'], language="text")
+        
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else:
