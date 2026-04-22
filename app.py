@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (기존 스타일 100% 보존)
+# 2. 디자인 스타일 적용 (기존 스타일 보존 및 하이라이트 강화)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -53,51 +53,24 @@ st.markdown("""
         border: 1px solid #f0f0f5 !important;
     }
     
-    .title-signboard h1 { 
-        margin: 0 !important; 
-        font-family: 'NanumSquareNeo', sans-serif !important;
-        font-size: 32px !important; 
-        font-weight: 900 !important; 
-        color: #1d1d1f !important; 
-        letter-spacing: -1.0px !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important; gap: 15px !important;
-    }
-    
-    .version-tag { 
-        display: inline-block !important; 
-        margin-top: 18px !important; 
-        padding: 6px 18px !important; 
-        font-size: 13px !important; 
-        font-weight: 800 !important; 
-        color: #6366f1 !important; 
-        background-color: #f0f1ff !important; 
-        border-radius: 20px !important; 
-    }
-    
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
-    /* 기본 코드 박스 스타일 및 넘침 방지 */
+    /* 기본 코드 박스 디자인 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
-    div.stCode pre, div.stCode code { 
+    div.stCode pre { padding: 22px !important; white-space: pre-wrap !important; word-break: break-all !important; }
+    div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
-        white-space: pre-wrap !important; 
-        word-wrap: break-word !important;
-        word-break: break-all !important; 
         color: #1d1d1f !important; 
         font-size: 15px !important; 
         line-height: 1.7 !important; 
-        background-color: transparent !important;
     }
-    div.stCode pre { padding: 22px !important; }
 
-    /* [해결] 오답 지문용 하이라이트 박스 (복사 버튼 유지형) */
-    .highlight-x-container div.stCode pre {
+    /* [긴급 수정] 오답 지문용 하이라이트 - 억지로 주황색 주입 */
+    .highlight-x-box div[data-testid="stCodeBlock"] pre {
         background-color: #FFD580 !important; 
         border: 2px solid #FFB347 !important;
     }
-    .highlight-x-container div.stCode code {
+    .highlight-x-box div[data-testid="stCodeBlock"] code {
         color: #000000 !important; 
         font-weight: 800 !important; 
     }
@@ -120,30 +93,32 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (오답 판별 로직 정밀화)
+# 3. 데이터 파싱 함수 (오답 판별 로직 보완)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
         if len(parts) < 2: return None
         
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
-        ans_part = parts[1].strip()
+        ans_exp_full = parts[1].strip()
         
-        # 님이 강조하신 (☓) 및 다양한 오답 기호 정밀 매칭
+        # [정밀 타격] 님이 주신 특수문자 (☓)를 포함하여 앞부분에서 오답 여부 체크
         is_wrong = False
-        if any(mark in ans_part[:15] for mark in ['(☓)', '(X)', '(x)', '(×)']):
+        head_text = ans_exp_full[:20] # 앞부분 20자 내에서 판별
+        if '(☓)' in head_text or '(X)' in head_text or '(x)' in head_text or '(×)' in head_text:
             is_wrong = True
 
-        ans_part = re.sub(r'↑.*?↑|↓.*?↓', '', ans_part).strip()
-        source_match = re.search(r'(\[[^\]]+\])', ans_part)
+        ans_exp_full = re.sub(r'↑.*?↑|↓.*?↓', '', ans_exp_full).strip()
+        source_match = re.search(r'(\[[^\]]+\])', ans_exp_full)
         source = source_match.group(1).strip() if source_match else "시행처 없음"
         
-        ref_text = re.sub(r'^\([○OX☓×]\)\s*', '', ans_part)
+        # 레퍼런스 추출 로직 보존
         reference = "근거 확인 필요"
-        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5})', ref_text)
+        ref_temp = re.sub(r'^\([○OX☓×]\)\s*', '', ans_exp_full)
+        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5})', ref_temp)
         if case_matches: reference = case_matches[-1].strip()
 
-        return {"지문": question, "해설": ans_part, "번호": reference, "처": source, "오답": is_wrong}
+        return {"지문": question, "해설": ans_exp_full, "번호": reference, "처": source, "오답": is_wrong}
     except: return None
 
 # 4. 검색창 및 결과 출력
@@ -164,10 +139,9 @@ if os.path.exists(db_path):
                 with st.container(border=True):
                     st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
                     
-                    # 모든 경우 st.code를 사용하여 넘침 방지 및 복사 버튼 보장
                     if data['오답']:
-                        # 오답일 경우 전용 하이라이트 스타일을 먹인 컨테이너로 감쌈
-                        st.markdown('<div class="highlight-x-container">', unsafe_allow_html=True)
+                        # 오답일 때만 전용 클래스 적용
+                        st.markdown('<div class="highlight-x-box">', unsafe_allow_html=True)
                         st.code(data['지문'], language="text")
                         st.markdown('</div>', unsafe_allow_html=True)
                     else:
@@ -182,6 +156,7 @@ if os.path.exists(db_path):
                     with c2:
                         st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                         st.code(data['번호'], language="text")
+        
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
 else: st.error("database.txt 파일을 찾을 수 없습니다.")
