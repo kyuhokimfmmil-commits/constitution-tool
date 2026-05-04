@@ -1,7 +1,6 @@
 import streamlit as st
 import re
 import os
-import urllib.parse
 
 # ==========================================
 # [설정] 비밀번호 및 버전 정보
@@ -32,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 UI 100% 롤백 + 링크 스타일만 미세 조정)
+# 2. 디자인 스타일 적용 (원본 UI 100% 유지)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -54,30 +53,9 @@ st.markdown("""
         border: 1px solid #f0f0f5 !important;
     }
     
-    .title-signboard h1 { 
-        margin: 0 !important; 
-        font-family: 'NanumSquareNeo', sans-serif !important;
-        font-size: 32px !important; 
-        font-weight: 900 !important; 
-        color: #1d1d1f !important; 
-        letter-spacing: -1.0px !important;
-        display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important;
-    }
-    
-    .version-tag { 
-        display: inline-block !important; 
-        margin-top: 18px !important; 
-        padding: 6px 18px !important; 
-        font-size: 13px !important; 
-        font-weight: 800 !important; 
-        color: #6366f1 !important; 
-        background-color: #f0f1ff !important; 
-        border-radius: 20px !important; 
-    }
-    
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
-    /* [원본 롤백] 코드 박스 스타일 */
+    /* [원본] 코드 박스 스타일 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
@@ -90,7 +68,7 @@ st.markdown("""
     }
     div.stCode pre { padding: 22px !important; }
     
-    /* [원본 롤백] 오답 지문 형광펜 스타일 */
+    /* [원본] 오답 지문 형광펜 스타일 */
     .highlight-x {
         background-color: #FFD580 !important;
         color: #000000 !important;
@@ -105,11 +83,17 @@ st.markdown("""
         word-break: break-all !important;
     }
 
-    /* 판례 링크 텍스트 스타일 */
-    .court-link-text {
+    /* 자동 검색용 가짜 버튼 스타일 (기존 박스 디자인 유지) */
+    .search-trigger {
+        background: none !important;
+        border: none !important;
+        padding: 0 !important;
         color: #6366f1 !important;
         font-weight: 800 !important;
         text-decoration: underline !important;
+        cursor: pointer !important;
+        font-family: 'KoPubDotum', sans-serif !important;
+        font-size: 15px !important;
     }
 
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -176,13 +160,13 @@ if os.path.exists("database.txt") and search_query:
                     st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 자동검색)</div>", unsafe_allow_html=True)
                     p_num = data['판례']
                     if p_num != "근거 확인 필요":
-                        # [해결] 헌재 지능형 통합검색창에 글자가 직접 입력되도록 searchText 파라미터 사용
-                        encoded_p_num = urllib.parse.quote(p_num)
-                        search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
-                        
+                        # [해결 핵심] Form 전송 방식을 사용하여 헌재 사이트의 검색창에 강제로 값을 입력시킵니다.
                         st.markdown(f"""
                             <div style="background-color: #f5f5f7; padding: 22px; border-radius: 16px; font-size: 15px; line-height: 1.7;">
-                                <a href="{search_url}" target="_blank" class="court-link-text">🔗 {p_num}</a>
+                                <form action="https://isearch.ccourt.go.kr/search.do" method="get" target="_blank" style="margin:0;">
+                                    <input type="hidden" name="searchText" value="{p_num}">
+                                    <button type="submit" class="search-trigger">🔗 {p_num}</button>
+                                </form>
                             </div>
                         """, unsafe_allow_html=True)
                     else:
