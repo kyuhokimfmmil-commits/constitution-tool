@@ -32,7 +32,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 유지 + 하이라이트 + 링크 스타일)
+# 2. 디자인 스타일 적용 (원본 유지 + 하이라이트 + 검색 링크 스타일)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -103,21 +103,23 @@ st.markdown("""
         word-break: break-all !important;
     }
 
-    /* 판례 링크 전용 스타일 */
-    .court-search-link {
+    /* [해결] 판례번호 전용 검색 버튼 스타일 (원본 레이아웃과 조화) */
+    .search-btn-link {
         display: block !important;
-        background-color: #f5f5f7 !important;
-        padding: 22px !important;
+        background-color: #f0f1ff !important;
+        padding: 20px !important;
         border-radius: 16px !important;
         text-decoration: none !important;
         color: #6366f1 !important;
-        font-weight: 700 !important;
+        font-weight: 800 !important;
         font-size: 15px !important;
-        border: 1px dashed #6366f1 !important;
+        border: 1px solid #6366f1 !important;
         text-align: center !important;
+        transition: 0.2s;
     }
-    .court-search-link:hover {
-        background-color: #eeefff !important;
+    .search-btn-link:hover {
+        background-color: #6366f1 !important;
+        color: #ffffff !important;
     }
 
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -150,18 +152,12 @@ def parse_block(text_block):
             is_wrong_statement = True
         full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
         source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
-        if source_match:
-            source = source_match.group(1).strip()
-            clean_exp = full_answer_part[:source_match.start()].strip()
-            ans_exp_full = clean_exp + " " + source
-        else:
-            source = "시행처 없음"
-            ans_exp_full = full_answer_part
+        source = source_match.group(1).strip() if source_match else "시행처 없음"
         reference = "근거 확인 필요"
-        ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', ans_exp_full)
-        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', ans_exp_full)
+        ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', full_answer_part)
+        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', full_answer_part)
         if case_matches: reference = case_matches[-1].strip()
-        return {"지문": question, "정답및해설": ans_exp_full, "판례번호": reference, "시행처": source, "오답여부": is_wrong_statement}
+        return {"지문": question, "해설": full_answer_part, "판례": reference, "처": source, "오답": is_wrong_statement}
     except Exception: return None
 
 # 4. 검색창 및 결과 출력
@@ -175,42 +171,41 @@ if os.path.exists(db_path):
         blocks = re.split(r'(?m)^0\.\s', content)
         results_found = 0
         for block in blocks:
-            if not block.strip(): continue
-            if search_query in block:
-                parsed_data = parse_block("0. " + block)
-                if parsed_data:
-                    results_found += 1
-                    with st.container(border=True):
-                        st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
-                        if parsed_data['오답여부']:
-                            st.markdown(f"<div class='highlight-x'>{parsed_data['지문']}</div>", unsafe_allow_html=True)
-                        else:
-                            st.code(parsed_data['지문'], language="text")
+            if not block.strip() or search_query not in block: continue
+            data = parse_block("0. " + block)
+            if data:
+                results_found += 1
+                with st.container(border=True):
+                    st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
+                    if data['오답']:
+                        st.markdown(f"<div class='highlight-x'>{data['지문']}</div>", unsafe_allow_html=True)
+                    else:
+                        st.code(data['지문'], language="text")
                             
-                        st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
-                        st.code(parsed_data['정답및해설'], language="text")
+                    st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
+                    st.code(data['해설'], language="text")
                         
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
-                            st.code(parsed_data['시행처'], language="text")
-                        with col2:
-                            st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 자동검색)</div>", unsafe_allow_html=True)
-                            p_num = parsed_data['판례번호']
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
+                        st.code(data['처'], language="text")
+                    with col2:
+                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (자동 검색)</div>", unsafe_allow_html=True)
+                        p_num = data['판례']
+                        
+                        if p_num and p_num != "근거 확인 필요":
+                            # [진짜 실현] 헌법재판소 지능형 판례검색의 내부 검색 처리 URL 적용
+                            # 검색어 파라미터를 인코딩하여 즉시 검색 결과 페이지로 유도
+                            encoded_p_num = urllib.parse.quote(p_num.encode('utf-8'))
+                            real_search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
                             
-                            if p_num and p_num != "근거 확인 필요":
-                                # [핵심] 지능형 판례검색 결과 페이지로 즉시 연결되는 파라미터 적용
-                                encoded_p_num = urllib.parse.quote(p_num)
-                                # 헌재 사이트의 검색 수행 URL 구조 적용
-                                court_search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
-                                
-                                st.markdown(f"""
-                                    <a href="{court_search_url}" target="_blank" class="court-search-link">
-                                        🔗 {p_num} (검색 결과 보기)
-                                    </a>
-                                """, unsafe_allow_html=True)
-                            else:
-                                st.code(p_num, language="text")
+                            st.markdown(f"""
+                                <a href="{real_search_url}" target="_blank" class="search-btn-link">
+                                    🔍 {p_num} 원문 찾기
+                                </a>
+                            """, unsafe_allow_html=True)
+                        else:
+                            st.code(p_num, language="text")
                                 
         if results_found == 0: st.warning("결과가 없습니다.")
         else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
