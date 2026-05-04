@@ -190,7 +190,7 @@ if os.path.exists(db_path):
                         st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
                         st.code(data['처'], language="text")
                     with col2:
-                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (자동 검색)</div>", unsafe_allow_html=True)
+                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                         p_num = data['판례']
                         
                         if p_num and p_num != "근거 확인 필요":
@@ -201,7 +201,7 @@ if os.path.exists(db_path):
                             
                             st.markdown(f"""
                                 <a href="{real_search_url}" target="_blank" class="search-btn-link">
-                                    🔍 {p_num} 원문 찾기
+                                    🔍 {p_num} 
                                 </a>
                             """, unsafe_allow_html=True)
                         else:
