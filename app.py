@@ -176,11 +176,10 @@ if os.path.exists("database.txt") and search_query:
                     st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 자동검색)</div>", unsafe_allow_html=True)
                     p_num = data['판례']
                     if p_num != "근거 확인 필요":
-                        # [해결] 사진 속 검색창에 글자가 들어가도록 'q' 파라미터 사용
+                        # [해결] 헌재 지능형 통합검색창에 글자가 직접 입력되도록 searchText 파라미터 사용
                         encoded_p_num = urllib.parse.quote(p_num)
-                        search_url = f"https://isearch.ccourt.go.kr/search.do?q={encoded_p_num}"
+                        search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
                         
-                        # 원본 st.code와 시각적으로 동일한 박스 형태 유지
                         st.markdown(f"""
                             <div style="background-color: #f5f5f7; padding: 22px; border-radius: 16px; font-size: 15px; line-height: 1.7;">
                                 <a href="{search_url}" target="_blank" class="court-link-text">🔗 {p_num}</a>
