@@ -9,8 +9,12 @@ MY_PASSWORD = "leylab2026"
 MY_VERSION = "VERSION_260504" 
 # ==========================================
 
-# 1. 페이지 세팅
-st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
+# 1. 페이지 세팅 (스크롤 및 레이아웃 최적화)
+st.set_page_config(
+    page_title="이은영 헌법 통합검색 TOOL", 
+    layout="centered", # 가독성을 위해 중앙 정렬 유지
+    initial_sidebar_state="collapsed"
+)
 
 # --- 로그인 로직 (원본 불변) ---
 def check_password():
@@ -31,7 +35,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 UI 100% 롤백)
+# 2. 디자인 스타일 적용 (원본 UI 100% 롤백 및 스크롤바 가시성 확보)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -39,6 +43,11 @@ st.markdown("""
     
     html, body, [class*="css"], .stMarkdown, p, div, span { 
         font-family: 'KoPubDotum', sans-serif !important; 
+    }
+
+    /* 전체 페이지 스크롤 허용 설정 */
+    .main .block-container {
+        overflow-y: auto !important;
     }
     
     .title-signboard { 
@@ -76,7 +85,7 @@ st.markdown("""
     
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
-    /* [원본] 코드 박스 스타일 */
+    /* [원본] 코드 박스 스타일 및 줄바꿈 유지 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
@@ -129,7 +138,7 @@ def parse_block(text_block):
         if len(parts) < 2: return None
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
         ans_part = parts[1].strip()
-        is_wrong = bool(re.search(r'\([☓X]\)', ans_part))
+        is_wrong = bool(re.search(r'\([☓X]\)', ans_part)) # 오답 판별
         ans_part = re.sub(r'↑.*?↑|↓.*?↓', '', ans_part).strip()
         source_match = re.search(r'(\[[^\]]+\])', ans_part)
         source = source_match.group(1).strip() if source_match else "시행처 없음"
@@ -140,8 +149,10 @@ def parse_block(text_block):
 
 # 4. 검색창 및 결과 출력
 search_query = st.text_input("🔍 검색어를 입력하세요")
-if os.path.exists("database.txt") and search_query:
-    with open("database.txt", 'r', encoding='utf-8') as f:
+db_path = "database.txt"
+
+if os.path.exists(db_path) and search_query:
+    with open(db_path, 'r', encoding='utf-8') as f:
         content = f.read()
     blocks = re.split(r'(?m)^0\.\s', content)
     found_count = 0
@@ -152,7 +163,7 @@ if os.path.exists("database.txt") and search_query:
             found_count += 1
             with st.container(border=True):
                 st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
-                if data['오답']:
+                if data['오답']: # 오답 주황색 하이라이트
                     st.markdown(f"<div class='highlight-x'>{data['지문']}</div>", unsafe_allow_html=True)
                 else:
                     st.code(data['지문'], language="text")
@@ -167,9 +178,11 @@ if os.path.exists("database.txt") and search_query:
                 with col2:
                     st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
                     st.code(data['판례'], language="text")
-                    
-                # 헌법재판소 지능형 통합검색 링크 버튼 추가
-                st.link_button("🏛️ 헌법재판소 판례검색 바로가기", "https://isearch.ccourt.go.kr/main.do")
                 
+                # 헌법재판소 링크 버튼 추가
+                st.link_button("🏛️ 헌법재판소 지능형 통합검색 바로가기", "https://isearch.ccourt.go.kr/main.do")
+
     if found_count == 0: st.warning("결과가 없습니다.")
     else: st.success(f"총 {found_count}개의 관련 지문을 찾았습니다.")
+elif not os.path.exists(db_path):
+    st.error("database.txt 파일을 찾을 수 없습니다.")
