@@ -1,19 +1,18 @@
 import streamlit as st
 import re
 import os
-import urllib.parse
 
 # ==========================================
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
 MY_PASSWORD = "leylab2026"  
-MY_VERSION = "VERSION_260422_COURT_DIRECT" 
+MY_VERSION = "VERSION_260504_PERFECT_SEARCH" 
 # ==========================================
 
 # 1. 페이지 세팅
 st.set_page_config(page_title="이은영 헌법 통합검색 TOOL", layout="centered")
 
-# --- 로그인 로직 (불변) ---
+# --- 로그인 로직 (원본 유지) ---
 def check_password():
     if "password_correct" not in st.session_state:
         st.session_state["password_correct"] = False
@@ -32,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 유지 + 하이라이트 + 검색 링크 스타일)
+# 2. 디자인 스타일 적용 (원본 유지 + 하이라이트 + UI 정렬 + 검색 폼)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -54,29 +53,9 @@ st.markdown("""
         border: 1px solid #f0f0f5 !important;
     }
     
-    .title-signboard h1 { 
-        margin: 0 !important; 
-        font-family: 'NanumSquareNeo', sans-serif !important;
-        font-size: 32px !important; 
-        font-weight: 900 !important; 
-        color: #1d1d1f !important; 
-        letter-spacing: -1.0px !important;
-        display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important;
-    }
-    
-    .version-tag { 
-        display: inline-block !important; 
-        margin-top: 18px !important; 
-        padding: 6px 18px !important; 
-        font-size: 13px !important; 
-        font-weight: 800 !important; 
-        color: #6366f1 !important; 
-        background-color: #f0f1ff !important; 
-        border-radius: 20px !important; 
-    }
-    
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
     
+    /* [원본 유지] 코드 박스 스타일 */
     div.stCode { background-color: #f5f5f7 !important; border-radius: 16px !important; border: none !important; margin-bottom: 10px !important; }
     div.stCode pre, div.stCode code { 
         font-family: 'KoPubDotum', sans-serif !important; 
@@ -89,7 +68,7 @@ st.markdown("""
     }
     div.stCode pre { padding: 22px !important; }
     
-    /* 오답 지문 주황색 형광펜 스타일 */
+    /* [원본 유지] 오답 지문 주황색 형광펜 */
     .highlight-x {
         background-color: #FFD580 !important;
         color: #000000 !important;
@@ -104,21 +83,33 @@ st.markdown("""
         word-break: break-all !important;
     }
 
-    /* 판례번호 클릭 영역 스타일 */
-    .court-search-box {
-        display: block !important;
+    /* [해결] 하단 박스 높이 일원화 (시행처 & 판례번호 동일 사이즈) */
+    .sync-box {
         background-color: #f5f5f7 !important;
         padding: 22px !important;
         border-radius: 16px !important;
-        text-decoration: none !important;
-        color: #6366f1 !important;
-        font-weight: 800 !important;
         font-size: 15px !important;
-        border: 1px solid #6366f1 !important;
+        height: 80px !important; /* 높이 고정으로 밸런스 유지 */
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
         text-align: center !important;
+        border: none !important;
+    }
+
+    /* [해결] 진짜 자동검색이 되는 버튼 스타일 */
+    .search-submit-btn {
+        width: 100%;
+        height: 80px;
+        background-color: #f0f1ff !important;
+        color: #6366f1 !important;
+        border: 1px solid #6366f1 !important;
+        border-radius: 16px !important;
+        font-weight: 800 !important;
+        cursor: pointer !important;
         transition: 0.2s;
     }
-    .court-search-box:hover {
+    .search-submit-btn:hover {
         background-color: #6366f1 !important;
         color: #ffffff !important;
     }
@@ -141,76 +132,60 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (원본 로직 보존)
+# 3. 데이터 파싱 함수 (원본 유지)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
         if len(parts) < 2: return None
         question = re.sub(r'^0\.\s*', '', parts[0]).strip()
-        full_answer_part = parts[1].strip()
-        is_wrong_statement = False
-        if re.search(r'\([☓X]\)', full_answer_part):
-            is_wrong_statement = True
-        full_answer_part = re.sub(r'↑.*?↑|↓.*?↓', '', full_answer_part).strip()
-        source_match = re.search(r'(\[[^\]]+\])', full_answer_part)
+        ans_part = parts[1].strip()
+        is_wrong = bool(re.search(r'\([☓X]\)', ans_part))
+        ans_part = re.sub(r'↑.*?↑|↓.*?↓', '', ans_part).strip()
+        source_match = re.search(r'(\[[^\]]+\])', ans_part)
         source = source_match.group(1).strip() if source_match else "시행처 없음"
-        reference = "근거 확인 필요"
-        ref_text_temp = re.sub(r'^\([○OX×]\)\s*', '', full_answer_part)
-        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', full_answer_part)
-        if case_matches: reference = case_matches[-1].strip()
-        return {"지문": question, "해설": full_answer_part, "판례": reference, "처": source, "오답": is_wrong_statement}
-    except Exception: return None
+        case_matches = re.findall(r'((?:대법원|헌재)?\s*\d{4}\.?\s*\d{1,2}\.?\s*\d{1,2}\.?\s*(?:선고|자)?\s*\d{2,4}[가-힣]{1,2}\d{1,5}|(?<!\d)\d{2,4}[가-힣]{1,2}\d{1,5})', ans_part)
+        reference = case_matches[-1].strip() if case_matches else "근거 확인 필요"
+        return {"지문": question, "해설": ans_part, "판례": reference, "처": source, "오답": is_wrong}
+    except: return None
 
 # 4. 검색창 및 결과 출력
 search_query = st.text_input("🔍 검색어를 입력하세요")
-db_path = "database.txt"
-
-if os.path.exists(db_path):
-    if search_query:
-        with open(db_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-        blocks = re.split(r'(?m)^0\.\s', content)
-        results_found = 0
-        for block in blocks:
-            if not block.strip() or search_query not in block: continue
-            data = parse_block("0. " + block)
-            if data:
-                results_found += 1
-                with st.container(border=True):
-                    st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
-                    if data['오답']:
-                        st.markdown(f"<div class='highlight-x'>{data['지문']}</div>", unsafe_allow_html=True)
+if os.path.exists("database.txt") and search_query:
+    with open("database.txt", 'r', encoding='utf-8') as f:
+        content = f.read()
+    blocks = re.split(r'(?m)^0\.\s', content)
+    found_count = 0
+    for block in blocks:
+        if not block.strip() or search_query not in block: continue
+        data = parse_block("0. " + block)
+        if data:
+            found_count += 1
+            with st.container(border=True):
+                st.markdown("<div class='section-title'>📝 지문</div>", unsafe_allow_html=True)
+                if data['오답']:
+                    st.markdown(f"<div class='highlight-x'>{data['지문']}</div>", unsafe_allow_html=True)
+                else:
+                    st.code(data['지문'], language="text")
+                
+                st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
+                st.code(data['해설'], language="text")
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div class='sync-box'>{data['처']}</div>", unsafe_allow_html=True)
+                with col2:
+                    st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 자동검색)</div>", unsafe_allow_html=True)
+                    p_num = data['판례']
+                    if p_num != "근거 확인 필요":
+                        # [핵심] HTML Form을 사용하여 헌재 사이트로 POST 검색 요청 모사
+                        st.markdown(f"""
+                            <form action="https://isearch.ccourt.go.kr/search.do" method="get" target="_blank">
+                                <input type="hidden" name="searchText" value="{p_num}">
+                                <input type="submit" value="🔎 {p_num}" class="search-submit-btn">
+                            </form>
+                        """, unsafe_allow_html=True)
                     else:
-                        st.code(data['지문'], language="text")
-                            
-                    st.markdown("<div class='section-title'>✔️ 정답 및 해설</div>", unsafe_allow_html=True)
-                    st.code(data['해설'], language="text")
-                        
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
-                        st.code(data['처'], language="text")
-                    with col2:
-                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 원문 검색)</div>", unsafe_allow_html=True)
-                        p_num = data['판례']
-                        
-                        if p_num and p_num != "근거 확인 필요":
-                            # [해결] 헌법재판소 판례검색 결과 리스트로 직결되는 URL 구조
-                            # 파라미터를 통해 해당 판례번호에 대한 검색 결과를 강제 로딩합니다.
-                            clean_p_num = p_num.replace(" ", "") # 공백 제거하여 매칭률 향상
-                            encoded_p_num = urllib.parse.quote(p_num)
-                            
-                            # 헌재 지능형 검색의 결과 출력용 엔드포인트 활용
-                            direct_search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
-                            
-                            st.markdown(f"""
-                                <a href="{direct_search_url}" target="_blank" class="court-search-box">
-                                    🔎 {p_num}
-                                </a>
-                            """, unsafe_allow_html=True)
-                        else:
-                            st.code(p_num, language="text")
-                                
-        if results_found == 0: st.warning("결과가 없습니다.")
-        else: st.success(f"총 {results_found}개의 관련 지문을 찾았습니다.")
-else: st.error("database.txt 파일을 찾을 수 없습니다.")
+                        st.markdown(f"<div class='sync-box'>{p_num}</div>", unsafe_allow_html=True)
+    if found_count == 0: st.warning("결과가 없습니다.")
+    else: st.success(f"총 {found_count}개의 관련 지문을 찾았습니다.")
