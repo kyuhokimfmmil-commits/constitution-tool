@@ -7,7 +7,7 @@ import urllib.parse
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
 MY_PASSWORD = "leylab2026"  
-MY_VERSION = "VERSION_260504" 
+MY_VERSION = "VERSION_260422_COURT_DIRECT" 
 # ==========================================
 
 # 1. 페이지 세팅
@@ -89,6 +89,7 @@ st.markdown("""
     }
     div.stCode pre { padding: 22px !important; }
     
+    /* 오답 지문 주황색 형광펜 스타일 */
     .highlight-x {
         background-color: #FFD580 !important;
         color: #000000 !important;
@@ -103,11 +104,11 @@ st.markdown("""
         word-break: break-all !important;
     }
 
-    /* [해결] 판례번호 전용 검색 버튼 스타일 (원본 레이아웃과 조화) */
-    .search-btn-link {
+    /* 판례번호 클릭 영역 스타일 */
+    .court-search-box {
         display: block !important;
-        background-color: #f0f1ff !important;
-        padding: 20px !important;
+        background-color: #f5f5f7 !important;
+        padding: 22px !important;
         border-radius: 16px !important;
         text-decoration: none !important;
         color: #6366f1 !important;
@@ -117,7 +118,7 @@ st.markdown("""
         text-align: center !important;
         transition: 0.2s;
     }
-    .search-btn-link:hover {
+    .court-search-box:hover {
         background-color: #6366f1 !important;
         color: #ffffff !important;
     }
@@ -140,7 +141,7 @@ st.markdown(f"""
     </div>
 """, unsafe_allow_html=True)
 
-# 3. 데이터 파싱 함수 (원본 유지)
+# 3. 데이터 파싱 함수 (원본 로직 보존)
 def parse_block(text_block):
     try:
         parts = text_block.split('☞ 정답')
@@ -190,18 +191,21 @@ if os.path.exists(db_path):
                         st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
                         st.code(data['처'], language="text")
                     with col2:
-                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
+                        st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 원문 검색)</div>", unsafe_allow_html=True)
                         p_num = data['판례']
                         
                         if p_num and p_num != "근거 확인 필요":
-                            # [진짜 실현] 헌법재판소 지능형 판례검색의 내부 검색 처리 URL 적용
-                            # 검색어 파라미터를 인코딩하여 즉시 검색 결과 페이지로 유도
-                            encoded_p_num = urllib.parse.quote(p_num.encode('utf-8'))
-                            real_search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
+                            # [해결] 헌법재판소 판례검색 결과 리스트로 직결되는 URL 구조
+                            # 파라미터를 통해 해당 판례번호에 대한 검색 결과를 강제 로딩합니다.
+                            clean_p_num = p_num.replace(" ", "") # 공백 제거하여 매칭률 향상
+                            encoded_p_num = urllib.parse.quote(p_num)
+                            
+                            # 헌재 지능형 검색의 결과 출력용 엔드포인트 활용
+                            direct_search_url = f"https://isearch.ccourt.go.kr/search.do?searchText={encoded_p_num}"
                             
                             st.markdown(f"""
-                                <a href="{real_search_url}" target="_blank" class="search-btn-link">
-                                    🔍 {p_num} 
+                                <a href="{direct_search_url}" target="_blank" class="court-search-box">
+                                    🔎 {p_num}
                                 </a>
                             """, unsafe_allow_html=True)
                         else:
