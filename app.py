@@ -6,7 +6,7 @@ import os
 # [설정] 비밀번호 및 버전 정보
 # ==========================================
 MY_PASSWORD = "leylab2026"  
-MY_VERSION = "VERSION_260504_STABLE_FINAL" 
+MY_VERSION = "VERSION_260504" 
 # ==========================================
 
 # 1. 페이지 세팅
@@ -31,7 +31,7 @@ def check_password():
 if not check_password():
     st.stop()
 
-# 2. 디자인 스타일 적용 (원본 UI 100% 유지)
+# 2. 디자인 스타일 적용 (원본 UI 100% 롤백)
 st.markdown("""
     <style>
     @import url('https://webfontworld.github.io/kopub/KoPubDotum.css');
@@ -51,6 +51,27 @@ st.markdown("""
         box-shadow: 0 10px 40px rgba(0,0,0,0.05) !important; 
         margin-bottom: 30px !important; 
         border: 1px solid #f0f0f5 !important;
+    }
+    
+    .title-signboard h1 { 
+        margin: 0 !important; 
+        font-family: 'NanumSquareNeo', sans-serif !important;
+        font-size: 32px !important; 
+        font-weight: 900 !important; 
+        color: #1d1d1f !important; 
+        letter-spacing: -1.0px !important;
+        display: flex !important; justify-content: center !important; align-items: center !important; gap: 15px !important;
+    }
+    
+    .version-tag { 
+        display: inline-block !important; 
+        margin-top: 18px !important; 
+        padding: 6px 18px !important; 
+        font-size: 13px !important; 
+        font-weight: 800 !important; 
+        color: #6366f1 !important; 
+        background-color: #f0f1ff !important; 
+        border-radius: 20px !important; 
     }
     
     .section-title { font-size: 14px !important; font-weight: 700 !important; color: #86868b !important; margin-top: 20px !important; padding-left: 4px !important; }
@@ -81,19 +102,6 @@ st.markdown("""
         margin-bottom: 10px !important;
         white-space: pre-wrap !important;
         word-break: break-all !important;
-    }
-
-    /* 자동 검색용 가짜 버튼 스타일 (기존 박스 디자인 유지) */
-    .search-trigger {
-        background: none !important;
-        border: none !important;
-        padding: 0 !important;
-        color: #6366f1 !important;
-        font-weight: 800 !important;
-        text-decoration: underline !important;
-        cursor: pointer !important;
-        font-family: 'KoPubDotum', sans-serif !important;
-        font-size: 15px !important;
     }
 
     div[data-testid="stVerticalBlockBorderWrapper"] { 
@@ -157,19 +165,11 @@ if os.path.exists("database.txt") and search_query:
                     st.markdown("<div class='section-title'>🏢 시행처</div>", unsafe_allow_html=True)
                     st.code(data['처'], language="text")
                 with col2:
-                    st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호 (클릭 시 자동검색)</div>", unsafe_allow_html=True)
-                    p_num = data['판례']
-                    if p_num != "근거 확인 필요":
-                        # [해결 핵심] Form 전송 방식을 사용하여 헌재 사이트의 검색창에 강제로 값을 입력시킵니다.
-                        st.markdown(f"""
-                            <div style="background-color: #f5f5f7; padding: 22px; border-radius: 16px; font-size: 15px; line-height: 1.7;">
-                                <form action="https://isearch.ccourt.go.kr/search.do" method="get" target="_blank" style="margin:0;">
-                                    <input type="hidden" name="searchText" value="{p_num}">
-                                    <button type="submit" class="search-trigger">🔗 {p_num}</button>
-                                </form>
-                            </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.code(p_num, language="text")
+                    st.markdown("<div class='section-title'>⚖️ 판례 / 조문 번호</div>", unsafe_allow_html=True)
+                    st.code(data['판례'], language="text")
+                    
+                # 헌법재판소 지능형 통합검색 링크 버튼 추가
+                st.link_button("🏛️ 헌법재판소 판례검색 바로가기", "https://isearch.ccourt.go.kr/main.do")
+                
     if found_count == 0: st.warning("결과가 없습니다.")
     else: st.success(f"총 {found_count}개의 관련 지문을 찾았습니다.")
